@@ -199,8 +199,8 @@ class OrderService {
     if (!/^[1-9][0-9]{5}$/.test(cleanPin) || /^(.)\1{5}$/.test(cleanPin) || cleanPin === '123456') {
       throw new Error('Please provide a correct postal code.');
     }
-    if (!data.shippingAddress || !data.shippingAddress.addressLine1) {
-      throw new Error('Complete shipping address is required.');
+    if (!data.shippingAddress || !data.shippingAddress.addressLine1 || data.shippingAddress.addressLine1.trim().length < 5) {
+      throw new Error('Street address is required and must be at least 5 characters.');
     }
 
     // Auto-link customerId if an account already exists with this email
@@ -507,24 +507,43 @@ class OrderService {
       orderNumber: order.orderNumber || orderDoc.id,
       status: order.status || order.orderStatus || 'pending_payment',
       paymentStatus: order.paymentStatus || 'awaiting_payment',
-      items: (order.items || []).map(it => ({
-        name: it.name,
-        quantity: it.quantity,
-        size: it.size || null,
-        variantLabel: it.variantLabel || null,
-        unitPriceFormatted: it.unitPriceFormatted || '',
-        totalPriceFormatted: it.totalPriceFormatted || ''
-      })),
+      items: (order.items || []).map(it => {
+        const qty = it.quantity || 1;
+        const uPaise = it.unitPricePaise !== undefined ? it.unitPricePaise : (it.pricePaise !== undefined ? it.pricePaise : (it.price ? Math.round(parseFloat(it.price) * 100) : 0));
+        const tPaise = it.totalPricePaise !== undefined ? it.totalPricePaise : (it.subtotalPaise !== undefined ? it.subtotalPaise : (uPaise * qty));
+        return {
+          productId: it.productId || null,
+          name: it.name,
+          quantity: qty,
+          size: it.size || null,
+          color: it.color || null,
+          variantLabel: it.variantLabel || null,
+          imageUrl: it.imageUrl || (it.image ? (typeof it.image === 'string' ? it.image : it.image.url) : '') || '',
+          unitPricePaise: uPaise,
+          unitPriceFormatted: (it.unitPriceFormatted && it.unitPriceFormatted !== '₹0.00') ? it.unitPriceFormatted : (uPaise ? formatINR(uPaise) : ''),
+          totalPricePaise: tPaise,
+          totalPriceFormatted: (it.totalPriceFormatted && it.totalPriceFormatted !== '₹0.00') ? it.totalPriceFormatted : (tPaise ? formatINR(tPaise) : '')
+        };
+      }),
       pricing: {
-        finalPayableFormatted: order.pricing ? order.pricing.finalPayableFormatted : '',
+        subtotalPaise: order.pricing ? order.pricing.subtotalPaise : 0,
         subtotalFormatted: order.pricing ? order.pricing.subtotalFormatted : '',
-        shippingFormatted: order.pricing ? order.pricing.shippingFormatted : 'FREE'
+        shippingPaise: order.pricing ? order.pricing.shippingChargesPaise || order.pricing.shippingPaise : 0,
+        shippingFormatted: order.pricing ? order.pricing.shippingFormatted : 'FREE',
+        couponDiscountPaise: order.pricing ? (order.pricing.couponDiscountPaise || 0) : 0,
+        couponDiscountFormatted: order.pricing ? (order.pricing.couponDiscountFormatted || '') : '',
+        finalPayablePaise: order.pricing ? order.pricing.finalPayablePaise : 0,
+        finalPayableFormatted: order.pricing ? order.pricing.finalPayableFormatted : ''
       },
       shippingAddress: {
         addressee: order.shippingAddress ? order.shippingAddress.addressee : 'Customer',
+        phone: order.shippingAddress ? order.shippingAddress.phone : '',
+        addressLine1: order.shippingAddress ? order.shippingAddress.addressLine1 : '',
+        addressLine2: order.shippingAddress ? order.shippingAddress.addressLine2 : '',
         city: order.shippingAddress ? order.shippingAddress.city : '',
         state: order.shippingAddress ? order.shippingAddress.state : '',
-        postalCode: order.shippingAddress ? order.shippingAddress.postalCode : ''
+        postalCode: order.shippingAddress ? order.shippingAddress.postalCode : '',
+        country: order.shippingAddress ? order.shippingAddress.country : 'India'
       },
       fulfillment: order.fulfillment || order.tracking || {},
       createdAt: order.createdAt,

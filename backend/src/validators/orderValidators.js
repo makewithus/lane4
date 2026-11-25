@@ -15,7 +15,10 @@ const createOrderValidator = [
     .matches(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/)
     .withMessage('Please provide a valid standard email address.'),
   body('shippingAddress').isObject().withMessage('Shipping address object is required'),
-  body('shippingAddress.addressLine1').trim().notEmpty().withMessage('Address line 1 is required'),
+  body('shippingAddress.addressLine1')
+    .trim()
+    .isLength({ min: 5 })
+    .withMessage('Street Address is required and must be at least 5 characters.'),
   body('shippingAddress.city').trim().notEmpty().withMessage('City is required'),
   body('shippingAddress.state').trim().notEmpty().withMessage('State is required'),
   body('shippingAddress.postalCode')

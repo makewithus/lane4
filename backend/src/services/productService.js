@@ -413,9 +413,7 @@ class ProductService {
     if (filters.onlyPublished !== false) {
       products = products.filter(p =>
         p.isPublished === true &&
-        p.description && p.description.trim().length >= 10 &&
-        p.sku !== 'L4-TEST' &&
-        !(p.name && p.name.toLowerCase().includes('test'))
+        p.description && p.description.trim().length >= 10
       );
     }
 
@@ -491,7 +489,7 @@ class ProductService {
     }
 
     const data = snap.docs[0].data();
-    if (!allowUnpublished && (data.isPublished === false || data.slug === 'test-product-cap' || data.sku === '123')) {
+    if (!allowUnpublished && data.isPublished === false) {
       return null;
     }
 

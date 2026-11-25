@@ -2078,32 +2078,53 @@ var formatDateString = window.formatDateString || formatDateTime;
       const shippedCount = allOrders.filter(o => o.status === 'shipped' || o.status === 'out_for_delivery').length;
       const deliveredCount = allOrders.filter(o => o.status === 'delivered').length;
       const pendingCount = allOrders.filter(o => o.status === 'pending_payment' || o.status === 'payment_verification').length;
+      const returnedCount = allOrders.filter(o => o.status === 'returned' || o.status === 'refunded').length;
       const cancelledCount = allOrders.filter(o => o.status === 'cancelled').length;
+      const rejectedCount = allOrders.filter(o => o.status === 'payment_rejected').length;
+
+      // Real-time search filter
+      const q = (window.orderSearchQuery || '').toLowerCase().trim();
+      const searchedOrders = allOrders.filter(o => {
+        if (!q) return true;
+        const num = (o.orderNumber || o.orderId || o.id || '').toLowerCase();
+        const custName = (o.customer && (o.customer.displayName || o.customer.name || o.customer.fullName) || '').toLowerCase();
+        const shipName = (o.shippingAddress && (o.shippingAddress.fullName || o.shippingAddress.name || o.shippingAddress.addressee) || '').toLowerCase();
+        const email = (o.customer && o.customer.email || o.shippingAddress && o.shippingAddress.email || o.customerEmail || '').toLowerCase();
+        const phone = (o.shippingAddress && o.shippingAddress.phone || o.customer && o.customer.phone || '').toLowerCase();
+        const city = (o.shippingAddress && o.shippingAddress.city || '').toLowerCase();
+        const utr = (o.payment && (o.payment.upiUtr || o.payment.utr) || '').toLowerCase();
+        return num.includes(q) || custName.includes(q) || shipName.includes(q) || email.includes(q) || phone.includes(q) || city.includes(q) || utr.includes(q);
+      });
 
       // Filter based on active tab
-      const orders = allOrders.filter(o => {
+      const orders = searchedOrders.filter(o => {
         if (window.orderFilter === 'confirmed') return o.status === 'confirmed';
         if (window.orderFilter === 'processing') return o.status === 'processing';
         if (window.orderFilter === 'shipped') return o.status === 'shipped' || o.status === 'out_for_delivery';
         if (window.orderFilter === 'delivered') return o.status === 'delivered';
         if (window.orderFilter === 'pending') return o.status === 'pending_payment' || o.status === 'payment_verification';
+        if (window.orderFilter === 'returned') return o.status === 'returned' || o.status === 'refunded';
         if (window.orderFilter === 'cancelled') return o.status === 'cancelled';
+        if (window.orderFilter === 'rejected') return o.status === 'payment_rejected';
         return true;
       });
 
       container.innerHTML = `
         <div class="card">
-          <div class="card-header" style="flex-wrap:wrap;gap:12px;align-items:center;">
+          <div class="card-header" style="flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;">
             <div>
               <div class="card-title">Customer Orders & Fulfillment (${allOrders.length})</div>
               <div style="font-size:12px;color:#64748b;margin-top:2px;">Orders sorted with the newest transactions first. Update fulfillment and attach shipment tracking.</div>
             </div>
-            ${confirmedCount > 0 ? `
-              <div style="background:#f0fdf4;border:1px solid #bbf7d0;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:800;color:#166534;display:inline-flex;align-items:center;gap:6px;">
-                <span style="width:8px;height:8px;border-radius:50%;background:#16a34a;display:inline-block;"></span>
-                <span>${confirmedCount} Order${confirmedCount > 1 ? 's' : ''} Ready to Dispatch</span>
-              </div>
-            ` : ''}
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+              <input type="text" id="lane4-admin-order-search" placeholder="Search order #, customer, phone, city..." value="${window.orderSearchQuery || ''}" style="width:260px;height:36px;padding:6px 12px;border:1.5px solid #cbd5e1;border-radius:6px;font-size:12.5px;box-sizing:border-box;">
+              ${confirmedCount > 0 ? `
+                <div style="background:#f0fdf4;border:1px solid #bbf7d0;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:800;color:#166534;display:inline-flex;align-items:center;gap:6px;">
+                  <span style="width:8px;height:8px;border-radius:50%;background:#16a34a;display:inline-block;"></span>
+                  <span>${confirmedCount} Order${confirmedCount > 1 ? 's' : ''} Ready to Dispatch</span>
+                </div>
+              ` : ''}
+            </div>
           </div>
 
           <!-- Order Status Filter Tabs -->
@@ -2126,8 +2147,14 @@ var formatDateString = window.formatDateString || formatDateTime;
             <button type="button" class="btn ${window.orderFilter === 'pending' ? 'btn-primary' : 'btn-outline'}" style="padding:5px 12px;font-size:12px;border-radius:20px;cursor:pointer;${window.orderFilter === 'pending' ? 'background:#000;color:#fff;' : ''}" onclick="window.setOrderFilter('pending')">
               Pending Payment (${pendingCount})
             </button>
+            <button type="button" class="btn ${window.orderFilter === 'returned' ? 'btn-primary' : 'btn-outline'}" style="padding:5px 12px;font-size:12px;border-radius:20px;cursor:pointer;${window.orderFilter === 'returned' ? 'background:#0f172a;color:#fff;' : ''}" onclick="window.setOrderFilter('returned')">
+              Returned / Refunded (${returnedCount})
+            </button>
             <button type="button" class="btn ${window.orderFilter === 'cancelled' ? 'btn-primary' : 'btn-outline'}" style="padding:5px 12px;font-size:12px;border-radius:20px;cursor:pointer;${window.orderFilter === 'cancelled' ? 'background:#ef4444;color:#fff;' : 'border-color:#fca5a5;color:#b91c1c;'}" onclick="window.setOrderFilter('cancelled')">
               Cancelled (${cancelledCount})
+            </button>
+            <button type="button" class="btn ${window.orderFilter === 'rejected' ? 'btn-primary' : 'btn-outline'}" style="padding:5px 12px;font-size:12px;border-radius:20px;cursor:pointer;${window.orderFilter === 'rejected' ? 'background:#991b1b;color:#fff;' : 'border-color:#fca5a5;color:#991b1b;'}" onclick="window.setOrderFilter('rejected')">
+              Payment Rejected (${rejectedCount})
             </button>
           </div>
 
@@ -2246,6 +2273,19 @@ var formatDateString = window.formatDateString || formatDateTime;
           </div>
         </div>
       `;
+
+      const searchInput = document.getElementById('lane4-admin-order-search');
+      if (searchInput) {
+        searchInput.oninput = (e) => {
+          window.orderSearchQuery = e.target.value;
+          loadOrders(true);
+        };
+        if (isQuiet) {
+          searchInput.focus();
+          const val = searchInput.value;
+          searchInput.setSelectionRange(val.length, val.length);
+        }
+      }
     } catch (err) {
       container.innerHTML = `<p style="color:#ef4444;padding:20px;">Error loading orders: ${err.message}</p>`;
     } finally {
@@ -3856,7 +3896,7 @@ var formatDateString = window.formatDateString || formatDateTime;
                   ${cats.length === 0 ? '<tr><td colspan="6" style="text-align:center;padding:24px;color:#888;">No categories found.</td></tr>' :
                     cats.map((c, idx) => `
                       <tr>
-                        <td><strong>#${c.displayOrder !== undefined && c.displayOrder !== null ? c.displayOrder : (idx + 1)}</strong></td>
+                        <td><strong>#${idx + 1}</strong></td>
                         <td><strong style="color:#0f172a;">${c.name}</strong></td>
                         <td><code>${c.slug}</code></td>
                         <td style="color:#64748b;font-size:13px;max-width:300px;">${c.description || '—'}</td>

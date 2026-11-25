@@ -237,16 +237,19 @@ window.INDIAN_STATES = [
         right: 8px;
         top: 50%;
         transform: translateY(-50%);
-        z-index: 2;
+        z-index: 10;
         background: transparent;
         border: none;
         padding: 6px;
+        width: 36px;
+        height: 36px;
         cursor: pointer;
-        color: #64748b;
-        display: flex;
+        color: #475569;
+        display: flex !important;
         align-items: center;
         justify-content: center;
         border-radius: 6px;
+        box-sizing: border-box;
         transition: color 0.15s, background-color 0.15s;
       }
       .lane4-auth-pass-toggle:hover {
@@ -256,6 +259,15 @@ window.INDIAN_STATES = [
       .lane4-auth-pass-toggle:focus {
         outline: none;
         color: #0f172a;
+      }
+      .lane4-auth-pass-toggle svg {
+        display: block !important;
+        width: 20px !important;
+        height: 20px !important;
+        stroke: currentColor !important;
+        stroke-width: 2px !important;
+        fill: none !important;
+        flex-shrink: 0;
       }
       .lane4-auth-submit-btn {
         width: 100%;
@@ -509,7 +521,7 @@ window.INDIAN_STATES = [
 
           <!-- Tab Content: Orders -->
           <div id="lane4-acc-tab-orders" style="display:block;">
-            <div id="lane4-account-orders" style="font-size:13px;color:#64748b;max-height:280px;overflow-y:auto;">Loading orders...</div>
+            <div id="lane4-account-orders" style="font-size:13px;color:#64748b;max-height:380px;overflow-y:auto;padding:8px 4px 12px 4px;">Loading orders...</div>
           </div>
 
           <!-- Tab Content: Profile -->
@@ -672,8 +684,8 @@ window.INDIAN_STATES = [
         const hideIcon = wrap.querySelector('.eye-hide');
         const btn = wrap.querySelector('.lane4-auth-pass-toggle');
         if (input) input.type = 'password';
-        if (showIcon) showIcon.style.display = 'block';
-        if (hideIcon) hideIcon.style.display = 'none';
+        if (showIcon) showIcon.style.setProperty('display', 'block', 'important');
+        if (hideIcon) hideIcon.style.setProperty('display', 'none', 'important');
         if (btn) {
           btn.setAttribute('aria-label', 'Show password');
           btn.setAttribute('title', 'Show password');
@@ -695,8 +707,8 @@ window.INDIAN_STATES = [
         const showIcon = btn.querySelector('.eye-show');
         const hideIcon = btn.querySelector('.eye-hide');
         if (showIcon && hideIcon) {
-          showIcon.style.display = isPassword ? 'none' : 'block';
-          hideIcon.style.display = isPassword ? 'block' : 'none';
+          showIcon.style.setProperty('display', isPassword ? 'none' : 'block', 'important');
+          hideIcon.style.setProperty('display', isPassword ? 'block' : 'none', 'important');
         }
         const newLabel = isPassword ? 'Hide password' : 'Show password';
         btn.setAttribute('aria-label', newLabel);
@@ -1302,22 +1314,41 @@ window.INDIAN_STATES = [
       if (!unitPaise && pricing.subtotalPaise > 0 && items.length > 0) {
         unitPaise = Math.round(pricing.subtotalPaise / items.length);
       }
-      const unitPriceFormatted = (it.unitPriceFormatted && it.unitPriceFormatted !== '₹0.00')
+      if (!unitPaise && pricing.finalPayablePaise > 0 && items.length > 0) {
+        unitPaise = Math.round(pricing.finalPayablePaise / items.length);
+      }
+      if (!unitPaise && ord.totalPaise > 0 && items.length > 0) {
+        unitPaise = Math.round(ord.totalPaise / items.length);
+      }
+      if (!unitPaise && pricing.finalPayableFormatted) {
+        const num = parseFloat(pricing.finalPayableFormatted.replace(/[^0-9.]/g, ''));
+        if (!isNaN(num) && num > 0) {
+          unitPaise = Math.round((num * 100) / (items.length || 1));
+        }
+      }
+
+      function isZeroPriceString(str) {
+        if (!str) return true;
+        const val = parseFloat(String(str).replace(/[^0-9.]/g, ''));
+        return isNaN(val) || val <= 0;
+      }
+
+      const unitPriceFormatted = (it.unitPriceFormatted && !isZeroPriceString(it.unitPriceFormatted))
         ? it.unitPriceFormatted
-        : ((it.priceFormatted && it.priceFormatted !== '₹0.00')
+        : ((it.priceFormatted && !isZeroPriceString(it.priceFormatted))
           ? it.priceFormatted
-          : (window.LANE4 && unitPaise ? window.LANE4.formatINR(unitPaise) : `₹${((unitPaise || 0)/100).toFixed(2)}`));
+          : (window.LANE4 && unitPaise ? window.LANE4.formatINR(unitPaise) : (unitPaise ? `₹${((unitPaise || 0)/100).toFixed(2)}` : '—')));
 
       const qty = it.quantity || 1;
       let itemSubtotalPaise = it.totalPricePaise !== undefined ? it.totalPricePaise : (it.subtotalPaise !== undefined ? it.subtotalPaise : (unitPaise * qty));
       if (!itemSubtotalPaise && unitPaise) {
         itemSubtotalPaise = unitPaise * qty;
       }
-      const itemSubtotalFormatted = (it.totalPriceFormatted && it.totalPriceFormatted !== '₹0.00')
+      const itemSubtotalFormatted = (it.totalPriceFormatted && !isZeroPriceString(it.totalPriceFormatted))
         ? it.totalPriceFormatted
-        : ((it.subtotalFormatted && it.subtotalFormatted !== '₹0.00')
+        : ((it.subtotalFormatted && !isZeroPriceString(it.subtotalFormatted))
           ? it.subtotalFormatted
-          : (window.LANE4 && itemSubtotalPaise ? window.LANE4.formatINR(itemSubtotalPaise) : `₹${((itemSubtotalPaise || 0)/100).toFixed(2)}`));
+          : (window.LANE4 && itemSubtotalPaise ? window.LANE4.formatINR(itemSubtotalPaise) : (itemSubtotalPaise ? `₹${((itemSubtotalPaise || 0)/100).toFixed(2)}` : '—')));
 
       return `
         <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #f1f5f9;">
@@ -1639,6 +1670,7 @@ window.INDIAN_STATES = [
   function renderCustomerOrders(orders) {
     const container = document.getElementById('lane4-account-orders');
     if (!container) return;
+    container.scrollTop = 0;
 
     if (!orders || orders.length === 0) {
       container.innerHTML = `
@@ -2082,6 +2114,7 @@ window.INDIAN_STATES = [
   async function loadCustomerOrders() {
     const container = document.getElementById('lane4-account-orders');
     if (!container) return;
+    container.scrollTop = 0;
     try {
       const res = await window.lane4ApiRequest('/orders/my-orders');
       const orders = (res && res.data) || [];

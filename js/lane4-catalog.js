@@ -271,8 +271,92 @@
     }
   }
 
+  // Real-time product detail page hydration (for dynamic & custom products)
+  async function hydrateProductDetail() {
+    const isProductPage = window.location.pathname.includes('/product/') || document.querySelector('.product-hero, .product-details');
+    if (!isProductPage) return;
+
+    const match = window.location.pathname.match(/\/product\/([a-zA-Z0-9_-]+)(?:\.html)?/i);
+    const querySlug = new URLSearchParams(window.location.search).get('slug');
+    const docSlug = document.documentElement.getAttribute('data-wf-item-slug');
+    const slug = (match && match[1] !== 'detail' && match[1] !== 'index') ? match[1] : (querySlug || docSlug);
+    if (!slug) return;
+
+    try {
+      const res = await window.lane4ApiRequest(`/products/${encodeURIComponent(slug)}`);
+      const p = res && res.data;
+      if (!p) return;
+
+      // Update document title
+      if (p.name) {
+        document.title = `${p.name} | The Lane4 Performance Store`;
+      }
+
+      // Update product title
+      const titleEl = document.querySelector('.pd-heading .title-h4, h4.title-h4, .product-details h4');
+      if (titleEl && p.name) {
+        titleEl.textContent = p.name;
+      }
+
+      // Update breadcrumbs
+      const breadcrumbEl = document.querySelector('.product-breadcrumbs a:last-child div, .product-breadcrumbs .w--current div');
+      if (breadcrumbEl && p.name) {
+        breadcrumbEl.textContent = p.name;
+      }
+
+      // Update subtitle / tagline
+      const taglineEl = document.querySelector('.pd-heading .paragraph-18px');
+      if (taglineEl) {
+        taglineEl.textContent = p.tagline || 'Pool-tested performance';
+      }
+
+      // Update price display
+      const priceEl = document.querySelector('.pd-heading .title-h6, h6.title-h6');
+      if (priceEl) {
+        const salePaise = parseInt(p.salePricePaise, 10) || 0;
+        const regPaise = parseInt(p.regularPricePaise, 10) || 0;
+        const fmt = (cents) => `₹${(cents / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} INR`;
+
+        if (salePaise > 0 && regPaise > salePaise) {
+          priceEl.innerHTML = `<span>${fmt(salePaise)}</span> <span style="text-decoration:line-through;color:#94a3b8;font-size:14px;margin-left:8px;font-weight:400;">${fmt(regPaise)}</span>`;
+        } else if (regPaise > 0 || salePaise > 0) {
+          priceEl.textContent = fmt(salePaise || regPaise);
+        }
+      }
+
+      // Update description
+      const descHeading = Array.from(document.querySelectorAll('.paragraph-13px')).find(el => (el.textContent || '').includes('Product Description'));
+      if (descHeading && descHeading.nextElementSibling && p.description) {
+        descHeading.nextElementSibling.textContent = p.description;
+      }
+
+      // Update gallery if dynamic product
+      const gallery = document.querySelector('.image-gallery');
+      if (gallery && p.images && p.images.length && (window.location.pathname.includes('/detail') || document.querySelector('.detail-gallery-placeholder'))) {
+        gallery.innerHTML = p.images.map(img => {
+          const url = (img && (img.secureUrl || img.url)) || '';
+          return `
+            <div class="image-gallery-row single-image" style="margin-bottom:16px;">
+              <img src="${url}" alt="${p.name}" style="width:100%;max-width:550px;border-radius:8px;object-fit:cover;display:block;" />
+            </div>
+          `;
+        }).join('');
+      }
+
+      // Ensure product details container is visible
+      const pdEl = document.querySelector('.product-details');
+      if (pdEl) {
+        pdEl.style.opacity = '1';
+        pdEl.style.visibility = 'visible';
+      }
+    } catch (err) {
+      console.warn('Could not hydrate product detail:', err);
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     hydrateCatalog();
     hydrateCategories();
+    hydrateProductDetail();
   });
 })();

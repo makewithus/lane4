@@ -236,7 +236,7 @@
     <div class="w-commerce-commercelayoutmain" id="lane4-checkout-main-col" style="flex:1;min-width:0;">
       
       <!-- Customer Info -->
-      <form class="w-commerce-commercecheckoutcustomerinfowrapper" style="margin-bottom:24px;">
+      <form class="w-commerce-commercecheckoutcustomerinfowrapper" novalidate="" style="margin-bottom:24px;">
         <div class="w-commerce-commercecheckoutblockheader" style="border-bottom:1px solid #e2e8f0;padding-bottom:8px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;">
           <h4 aria-level="2" class="header-text" style="margin:0;font-size:18px;font-weight:900;color:#0f172a;">Customer Info</h4>
           <span style="font-size:12px;color:#64748b;">* Required</span>
@@ -248,7 +248,7 @@
       </form>
 
       <!-- Shipping Address -->
-      <form class="w-commerce-commercecheckoutshippingaddresswrapper" style="margin-bottom:24px;">
+      <form class="w-commerce-commercecheckoutshippingaddresswrapper" novalidate="" style="margin-bottom:24px;">
         <div class="w-commerce-commercecheckoutblockheader" style="border-bottom:1px solid #e2e8f0;padding-bottom:8px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;">
           <h4 aria-level="2" class="header-text" style="margin:0;font-size:18px;font-weight:900;color:#0f172a;">Shipping Address</h4>
           <span style="font-size:12px;color:#64748b;">* Required</span>
@@ -256,16 +256,21 @@
         <fieldset class="w-commerce-commercecheckoutblockcontent">
           <div style="margin-bottom:14px;">
             <label class="w-commerce-commercecheckoutlabel header-text" style="display:block;font-size:12px;font-weight:800;letter-spacing:0.8px;text-transform:uppercase;color:#334155;margin-bottom:6px;">Full Name *</label>
-            <input class="w-commerce-commercecheckoutshippingfullname" name="name" type="text" required="" placeholder="e.g. Rohan Sharma" style="width:100%;height:46px;padding:10px 14px;border:1.5px solid #cbd5e1;border-radius:6px;font-size:14px;box-sizing:border-box;">
+            <input class="w-commerce-commercecheckoutshippingfullname" id="lane4-checkout-fullname" name="name" type="text" required="" placeholder="e.g. Rohan Sharma" style="width:100%;height:46px;padding:10px 14px;border:1.5px solid #cbd5e1;border-radius:6px;font-size:14px;box-sizing:border-box;">
+          </div>
+
+          <div id="lane4-checkout-phone-wrapper" style="margin-bottom:14px;">
+            <label class="w-commerce-commercecheckoutlabel header-text" style="display:block;font-size:12px;font-weight:800;letter-spacing:0.8px;text-transform:uppercase;color:#334155;margin-bottom:6px;">Mobile Phone Number (for shipment updates) *</label>
+            <input type="tel" id="lane4-checkout-phone" class="w-input lane4-checkout-phone-input" name="phone" placeholder="+91 98765 43210" required="" maxlength="10" inputmode="numeric" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 10);" style="width:100%;height:46px;padding:10px 14px;border:1.5px solid #cbd5e1;border-radius:6px;font-size:14px;box-sizing:border-box;">
           </div>
 
           <div style="margin-bottom:14px;">
             <label class="w-commerce-commercecheckoutlabel header-text" style="display:block;font-size:12px;font-weight:800;letter-spacing:0.8px;text-transform:uppercase;color:#334155;margin-bottom:6px;">Street Address *</label>
-            <input class="w-commerce-commercecheckoutshippingstreetaddress" name="address_line1" type="text" required="" placeholder="Flat/House No., Building, Street Name" style="width:100%;height:46px;padding:10px 14px;border:1.5px solid #cbd5e1;border-radius:6px;font-size:14px;box-sizing:border-box;">
+            <input class="w-commerce-commercecheckoutshippingstreetaddress" id="lane4-checkout-street-address" name="address_line1" type="text" required="" placeholder="Flat/House No., Building, Street Name" style="width:100%;height:46px;padding:10px 14px;border:1.5px solid #cbd5e1;border-radius:6px;font-size:14px;box-sizing:border-box;">
           </div>
 
           <div style="margin-bottom:14px;">
-            <input class="w-commerce-commercecheckoutshippingstreetaddressoptional" name="address_line2" type="text" placeholder="Apartment, suite, landmark (optional)" style="width:100%;height:46px;padding:10px 14px;border:1.5px solid #cbd5e1;border-radius:6px;font-size:14px;box-sizing:border-box;">
+            <input class="w-commerce-commercecheckoutshippingstreetaddressoptional" id="lane4-checkout-street-address2" name="address_line2" type="text" placeholder="Apartment, suite, landmark (optional)" style="width:100%;height:46px;padding:10px 14px;border:1.5px solid #cbd5e1;border-radius:6px;font-size:14px;box-sizing:border-box;">
           </div>
 
           <div class="w-commerce-commercecheckoutrow" style="display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap;">
@@ -284,7 +289,7 @@
             </div>
             <div class="w-commerce-commercecheckoutcolumn" style="flex:1;min-width:140px;">
               <label class="w-commerce-commercecheckoutlabel header-text" style="display:block;font-size:12px;font-weight:800;letter-spacing:0.8px;text-transform:uppercase;color:#334155;margin-bottom:6px;">PIN / Postal Code *</label>
-              <input class="w-commerce-commercecheckoutshippingzippostalcode" id="lane4-checkout-zip" name="address_zip" type="text" placeholder="e.g. 440001" required="" maxlength="6" minlength="6" inputmode="numeric" pattern="[0-9]{6}" autocomplete="postal-code" style="width:100%;height:46px;padding:10px 14px;border:1.5px solid #cbd5e1;border-radius:6px;font-size:14px;font-weight:500;box-sizing:border-box;">
+              <input class="w-commerce-commercecheckoutshippingzippostalcode" id="lane4-checkout-zip" name="address_zip" type="text" placeholder="e.g. 440001" required="" maxlength="6" minlength="6" inputmode="numeric" autocomplete="postal-code" oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0, 6);" style="width:100%;height:46px;padding:10px 14px;border:1.5px solid #cbd5e1;border-radius:6px;font-size:14px;font-weight:500;box-sizing:border-box;">
             </div>
           </div>
 

@@ -83,15 +83,27 @@
     }
 
     // 3. Pre-fill customer information if signed in or prompt login
+    function autofillCustomerInfo(u) {
+      const activeUser = u || (window.LANE4 && window.LANE4.getUser ? window.LANE4.getUser() : null);
+      if (!activeUser) return;
+      const emailInput = document.querySelector('input[name="email"], #wf-ecom-email');
+      if (emailInput && (!emailInput.value || emailInput.value === '')) emailInput.value = activeUser.email || '';
+      const nameInput = document.getElementById('lane4-checkout-fullname') || document.querySelector('input[name="name"], .w-commerce-commercecheckoutshippingfullname');
+      const candidateName = activeUser.displayName || activeUser.name || activeUser.fullName || (activeUser.email ? activeUser.email.split('@')[0].charAt(0).toUpperCase() + activeUser.email.split('@')[0].slice(1) : '');
+      if (nameInput && (!nameInput.value || nameInput.value === '') && candidateName) {
+        nameInput.value = candidateName;
+      }
+      const phoneInput = document.getElementById('lane4-checkout-phone') || document.querySelector('input[type="tel"]');
+      if (phoneInput && (!phoneInput.value || phoneInput.value === '') && activeUser.phoneNumber) {
+        phoneInput.value = activeUser.phoneNumber;
+      }
+      const banner = document.getElementById('lane4-checkout-auth-banner');
+      if (banner) banner.remove();
+    }
+
     const user = window.LANE4.getUser();
     if (user) {
-      const emailInput = document.querySelector('input[name="email"], #wf-ecom-email');
-      if (emailInput && !emailInput.value) emailInput.value = user.email || '';
-      const nameInput = document.querySelector('input[name="name"], .w-commerce-commercecheckoutshippingfullname');
-      const candidateName = user.displayName || user.name || user.fullName || (user.email ? user.email.split('@')[0].charAt(0).toUpperCase() + user.email.split('@')[0].slice(1) : '');
-      if (nameInput && !nameInput.value && candidateName) nameInput.value = candidateName;
-      const phoneInput = document.querySelector('#lane4-checkout-phone, input[type="tel"]');
-      if (phoneInput && !phoneInput.value && user.phoneNumber) phoneInput.value = user.phoneNumber;
+      autofillCustomerInfo(user);
     } else {
       setTimeout(() => {
         if (window.LANE4_AUTH && window.LANE4_AUTH.open) {
@@ -133,9 +145,13 @@
       }
     }
 
+    window.addEventListener('lane4:auth-changed', (e) => {
+      autofillCustomerInfo(e.detail);
+    });
+
     // 4. Setup State & City Dropdowns, Saved Addresses and strict input restrictions
     setupStateAndCityDropdowns();
-    setupSavedAddressesDropdown();
+    await setupSavedAddressesDropdown();
     setupInputRestrictions();
 
     // 5. Calculate initial quote & render items and summary
@@ -230,14 +246,16 @@
         <label class="w-commerce-commercecheckoutlabel" style="font-size:12px;font-weight:600;color:#334155;margin-bottom:6px;display:block;">
           Mobile Phone Number (for shipment updates) *
         </label>
-        <input type="tel" id="lane4-checkout-phone" class="w-commerce-commercecheckoutshippingstreetaddress w-input" placeholder="+91 98765 43210" style="width:100%;font-size:14px;" value="${user.phoneNumber || ''}" />
+        <input type="tel" id="lane4-checkout-phone" class="w-input lane4-checkout-phone-input" placeholder="+91 98765 43210" style="width:100%;font-size:14px;" value="${user.phoneNumber || ''}" />
       `;
-      const nameInput = document.querySelector('input.w-commerce-commercecheckoutshippingfullname, input[name="name"]');
+      const nameInput = document.getElementById('lane4-checkout-fullname') || document.querySelector('input.w-commerce-commercecheckoutshippingfullname, input[name="name"]');
       if (nameInput && nameInput.parentElement) {
         nameInput.parentElement.parentElement.insertBefore(phoneWrapper, nameInput.parentElement.nextSibling);
       } else {
         shippingSection.insertBefore(phoneWrapper, shippingSection.firstChild);
       }
+    } else if (user.phoneNumber && !phoneInput.value) {
+      phoneInput.value = user.phoneNumber;
     }
 
     try {
@@ -261,7 +279,7 @@
           </select>
         `;
 
-        const nameInput = document.querySelector('input.w-commerce-commercecheckoutshippingfullname, input[name="name"]');
+        const nameInput = document.getElementById('lane4-checkout-fullname') || document.querySelector('input.w-commerce-commercecheckoutshippingfullname, input[name="name"]');
         if (nameInput && nameInput.closest('.w-commerce-commercecheckoutblockheader, .w-commerce-commercecheckoutshippingaddresswrapper')) {
           const block = nameInput.closest('.w-commerce-commercecheckoutshippingaddresswrapper') || shippingSection;
           block.insertBefore(savedAddrWrapper, block.firstChild);
@@ -275,16 +293,16 @@
           if (idx === '' || !addresses[idx]) return;
           const a = addresses[idx];
 
-          const nameEl = document.querySelector('input.w-commerce-commercecheckoutshippingfullname, input[name="name"]');
+          const nameEl = document.getElementById('lane4-checkout-fullname') || document.querySelector('input.w-commerce-commercecheckoutshippingfullname, input[name="name"]');
           if (nameEl) nameEl.value = a.addressee || '';
 
           const phoneEl = document.getElementById('lane4-checkout-phone');
           if (phoneEl) phoneEl.value = a.phone || '';
 
-          const line1El = document.querySelector('input.w-commerce-commercecheckoutshippingstreetaddress, input[name="address_line1"]');
+          const line1El = document.getElementById('lane4-checkout-street-address') || document.querySelector('input.w-commerce-commercecheckoutshippingstreetaddress, input[name="address_line1"]');
           if (line1El) line1El.value = a.addressLine1 || '';
 
-          const line2El = document.querySelector('input.w-commerce-commercecheckoutshippingstreetaddressoptional, input[name="address_line2"]');
+          const line2El = document.getElementById('lane4-checkout-street-address2') || document.querySelector('input.w-commerce-commercecheckoutshippingstreetaddressoptional, input[name="address_line2"]');
           if (line2El) line2El.value = a.addressLine2 || '';
 
           const stateSelect = document.getElementById('lane4-checkout-state');
@@ -311,7 +329,7 @@
             }
           }, 50);
 
-          const pinEl = document.querySelector('input.w-commerce-commercecheckoutshippingzippostalcode, #lane4-checkout-zip, input[name="address_zip"]');
+          const pinEl = document.getElementById('lane4-checkout-zip') || document.querySelector('input.w-commerce-commercecheckoutshippingzippostalcode, input[name="address_zip"]');
           if (pinEl) pinEl.value = a.postalCode || '';
         };
       }
@@ -765,12 +783,18 @@
   }
 
   function setupInputRestrictions() {
+    // Disable native HTML5 browser validation tooltips across all checkout forms
+    document.querySelectorAll('form').forEach(f => {
+      f.setAttribute('novalidate', '');
+    });
+
     const pinInputs = document.querySelectorAll('input.w-commerce-commercecheckoutshippingzippostalcode, #lane4-checkout-zip, input[name="address_zip"]');
     pinInputs.forEach(pinEl => {
       pinEl.setAttribute('maxlength', '6');
       pinEl.setAttribute('minlength', '6');
       pinEl.setAttribute('inputmode', 'numeric');
-      pinEl.setAttribute('pattern', '[0-9]{6}');
+      pinEl.removeAttribute('pattern');
+      pinEl.removeAttribute('title');
       pinEl.setAttribute('autocomplete', 'postal-code');
 
       pinEl.addEventListener('input', (e) => {
@@ -814,13 +838,23 @@
       });
     }
 
-    const phoneEl = document.getElementById('lane4-checkout-phone');
+    const phoneEl = document.getElementById('lane4-checkout-phone') || document.querySelector('input.lane4-checkout-phone-input');
     if (phoneEl) {
       phoneEl.setAttribute('maxlength', '10');
       phoneEl.setAttribute('inputmode', 'numeric');
       phoneEl.addEventListener('input', (e) => {
         const cleaned = e.target.value.replace(/\D/g, '').slice(0, 10);
         if (e.target.value !== cleaned) e.target.value = cleaned;
+        clearFieldError(phoneEl);
+      });
+      phoneEl.addEventListener('keydown', (e) => {
+        if (['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Enter'].includes(e.key) || e.ctrlKey || e.metaKey) return;
+        if (!/^[0-9]$/.test(e.key)) e.preventDefault();
+      });
+      phoneEl.addEventListener('paste', (e) => {
+        e.preventDefault();
+        const text = (e.clipboardData || window.clipboardData).getData('text');
+        phoneEl.value = text.replace(/\D/g, '').slice(0, 10);
         clearFieldError(phoneEl);
       });
     }
@@ -851,14 +885,14 @@
 
       // Gather form inputs & elements
       const emailEl = document.querySelector('input[name="email"], #wf-ecom-email');
-      const nameEl = document.querySelector('input.w-commerce-commercecheckoutshippingfullname, input[name="name"]');
-      const line1El = document.querySelector('input.w-commerce-commercecheckoutshippingstreetaddress, input[name="address_line1"]');
-      const line2El = document.querySelector('input.w-commerce-commercecheckoutshippingstreetaddressoptional, input[name="address_line2"]');
+      const nameEl = document.getElementById('lane4-checkout-fullname') || document.querySelector('input.w-commerce-commercecheckoutshippingfullname, input[name="name"]');
+      const phoneEl = document.getElementById('lane4-checkout-phone') || document.querySelector('input.lane4-checkout-phone-input');
+      const line1El = document.getElementById('lane4-checkout-street-address') || document.querySelector('input.w-commerce-commercecheckoutshippingstreetaddress, input[name="address_line1"]');
+      const line2El = document.getElementById('lane4-checkout-street-address2') || document.querySelector('input.w-commerce-commercecheckoutshippingstreetaddressoptional, input[name="address_line2"]');
       const stateSelect = document.getElementById('lane4-checkout-state');
       const citySelect = document.getElementById('lane4-checkout-city-select');
       const customCityInput = document.getElementById('lane4-checkout-city-custom');
-      const pinEl = document.querySelector('input.w-commerce-commercecheckoutshippingzippostalcode, #lane4-checkout-zip, input[name="address_zip"]');
-      const phoneEl = document.getElementById('lane4-checkout-phone');
+      const pinEl = document.getElementById('lane4-checkout-zip') || document.querySelector('input.w-commerce-commercecheckoutshippingzippostalcode, input[name="address_zip"]');
       const utrEl = document.getElementById('lane4-utr-input');
       const fileInput = document.getElementById('lane4-screenshot-file');
 
@@ -880,7 +914,8 @@
       const utr = utrEl?.value.trim() || '';
       const screenshot = fileInput?.files ? fileInput.files[0] : null;
 
-      // In-form Client Validations
+      // In-form Client Validations - NO toast, NO general alert box, ONLY inline errors
+      clearAllFieldErrors();
       const errors = [];
       const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
       if (!email || !emailRegex.test(email)) {
@@ -889,11 +924,12 @@
       if (!name || name.length < 2) {
         errors.push({ el: nameEl, name: 'Full Name', msg: 'Please enter your full delivery name.' });
       }
-      if (!phone || (window.LANE4_VALIDATION ? !window.LANE4_VALIDATION.isValidIndianPhone(phone) : phone.length !== 10)) {
+      const phoneDigits = (phone || '').replace(/\D/g, '');
+      if (!phone || (window.LANE4_VALIDATION ? !window.LANE4_VALIDATION.isValidIndianPhone(phone) : phoneDigits.length !== 10)) {
         errors.push({ el: phoneEl, name: 'Mobile Phone', msg: 'Please enter a valid 10-digit Indian mobile number.' });
       }
-      if (!line1) {
-        errors.push({ el: line1El, name: 'Street Address', msg: 'Please enter your complete street address.' });
+      if (!line1 || line1.length < 5) {
+        errors.push({ el: line1El, name: 'Street Address', msg: 'Please enter your complete street address (flat/house no., street name).' });
       }
       if (!state) {
         errors.push({ el: stateSelect, name: 'State / UT', msg: 'Please select your delivery state.' });
@@ -902,7 +938,7 @@
         errors.push({ el: citySelect?.value === 'Other' ? customCityInput : citySelect, name: 'City', msg: 'Please select or enter your delivery city.' });
       }
       if (!postalCode || !/^[1-9][0-9]{5}$/.test(postalCode) || /^(.)\1{5}$/.test(postalCode) || postalCode === '123456') {
-        errors.push({ el: pinEl, name: 'PIN / Postal Code', msg: 'Please provide a correct postal code.' });
+        errors.push({ el: pinEl, name: 'PIN / Postal Code', msg: 'Please provide a correct 6-digit postal code.' });
       }
       const utrClean = (utr || '').replace(/\s+/g, '');
       if (!utrClean || !/^\d{12}$/.test(utrClean)) {
@@ -988,6 +1024,20 @@
           body: formData
         });
 
+        // Broadcast real-time payment notification across tabs & admin console
+        try {
+          const ch = new BroadcastChannel('lane4_orders_channel');
+          ch.postMessage({
+            type: 'NEW_PAYMENT_SUBMITTED',
+            orderId: createdOrder.orderId || createdOrder.id,
+            orderNumber: createdOrder.orderNumber || createdOrder.orderId,
+            amountPaise: createdOrder.pricing ? createdOrder.pricing.finalPayablePaise : 0,
+            amountFormatted: createdOrder.pricing ? createdOrder.pricing.finalPayableFormatted : '',
+            utr: utrClean
+          });
+          ch.close();
+        } catch (_) {}
+
         // 3. Clear cart cache and render order success receipt
         if (window.LANE4_CART && typeof window.LANE4_CART.clear === 'function') {
           await window.LANE4_CART.clear();
@@ -1022,7 +1072,7 @@
           return;
         }
 
-        // Check for specific backend validation details
+        // Check for specific backend validation details - show inline under the exact failing field only
         if (err.details && Array.isArray(err.details) && err.details.length > 0) {
           const fieldMap = {
             'shippingAddress.postalCode': { el: pinEl, label: 'PIN / Postal Code' },
@@ -1056,12 +1106,32 @@
           return;
         }
 
-        // Generic fallback error message
+        // Map generic error messages directly to the missing/problem field inline - NO toast and NO alert box
         if (errMsg) {
-          if (window.showStorefrontToast) {
-            window.showStorefrontToast(errMsg, 'error');
-          } else {
-            alert(errMsg);
+          const lower = errMsg.toLowerCase();
+          let targetEl = null;
+          if (lower.includes('address') || lower.includes('street')) {
+            targetEl = line1El;
+          } else if (lower.includes('postal') || lower.includes('pin') || lower.includes('zip')) {
+            targetEl = pinEl;
+          } else if (lower.includes('city')) {
+            targetEl = citySelect;
+          } else if (lower.includes('phone') || lower.includes('mobile')) {
+            targetEl = phoneEl;
+          } else if (lower.includes('email')) {
+            targetEl = emailEl;
+          } else if (lower.includes('utr') || lower.includes('reference')) {
+            targetEl = utrEl;
+          } else if (lower.includes('screenshot') || lower.includes('proof')) {
+            targetEl = fileInput;
+          }
+
+          if (targetEl) {
+            setFieldError(targetEl, errMsg);
+            try {
+              targetEl.focus();
+              targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            } catch (_) {}
           }
         }
       }
